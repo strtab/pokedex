@@ -2,31 +2,11 @@ package main
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
+	"github.com/strtab/pokedex/internal/commands"
 	"os"
 	"strings"
 )
-
-var mapNext string
-
-func cmdMap() error {
-	url := "https://pokeapi.co/api/v2//location-area/"
-	res, err := http.Get(url)
-	if err != nil {
-		return err
-	}
-	defer res.Body.Close()
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		return err
-	}
-	var cityArea string
-	json.Unmarshal(body, &cityArea)
-	return nil
-}
 
 func main() {
 	sc := bufio.NewScanner(os.Stdin)
@@ -36,7 +16,7 @@ func main() {
 		fmt.Print("Pokedex > ")
 
 		if !sc.Scan() {
-			cmdExit()
+			commands.CmdExit()
 		}
 		out := cleanInput(sc.Text())
 
@@ -44,8 +24,8 @@ func main() {
 			continue
 		}
 
-		if cmd, ok := register[out[0]]; ok {
-			if err := cmd.callback(); err != nil {
+		if cmd, ok := commands.Register[out[0]]; ok {
+			if err := cmd.Callback(); err != nil {
 				fmt.Println("Error:", err)
 			}
 		} else {
