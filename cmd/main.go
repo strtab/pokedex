@@ -25,7 +25,7 @@ func main() {
 		}
 
 		if cmd, ok := commands.Register[out[0]]; ok {
-			if err := cmd.Callback(); err != nil {
+			if err := cmd.Callback(out...); err != nil {
 				fmt.Println("Error:", err)
 			}
 		} else {
