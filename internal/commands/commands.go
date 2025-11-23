@@ -16,30 +16,40 @@ type cliCmd struct {
 
 func init() {
 	Register = map[string]cliCmd{
-		"exit": {
-			Name:        "exit",
-			Description: "Exit the Pokedex",
-			Callback:    CmdExit,
-		},
 		"map": {
 			Name:        "map",
 			Description: "Display the next 20 locations",
 			Callback:    CmdMap,
-		},
-		"explore": {
-			Name:        "explore",
-			Description: "Explore location",
-			Callback:    CmdExplore,
 		},
 		"mapb": {
 			Name:        "mapb",
 			Description: "Display the previous 20 locations",
 			Callback:    CmdMapb,
 		},
+		"explore": {
+			Name:        "explore",
+			Description: "Explore location",
+			Callback:    CmdExplore,
+		},
+		"catch": {
+			Name:        "catch",
+			Description: "Catch a pokemon",
+			Callback:    CmdCatch,
+		},
+		"inspect": {
+			Name:        "inspect",
+			Description: "Inspect a pokemon",
+			Callback:    CmdInspect,
+		},
 		"help": {
 			Name:        "help",
 			Description: "Displays the help message",
 			Callback:    CmdHelp,
+		},
+		"exit": {
+			Name:        "exit",
+			Description: "Exit the Pokedex",
+			Callback:    CmdExit,
 		},
 	}
 }
@@ -57,6 +67,22 @@ func CmdExplore(args ...string) error {
 		return fmt.Errorf("Usage: explore <location>")
 	}
 	return pokeapi.ExploreLocation(args[1])
+}
+
+func CmdCatch(args ...string) error {
+	if len(args) != 2 {
+		return fmt.Errorf("Usage: catch <pokemon>")
+	}
+
+	return pokeapi.CatchPokemon(args[1])
+}
+
+func CmdInspect(args ...string) error {
+	if len(args) != 2 {
+		return fmt.Errorf("Usage: inspect <pokemon>")
+	}
+
+	return pokeapi.InspectPokemon(args[1])
 }
 
 func CmdExit(args ...string) error {

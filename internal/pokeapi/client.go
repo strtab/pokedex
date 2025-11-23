@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/http"
 	"time"
 
@@ -29,8 +30,8 @@ func GetLocationAreas(isNext bool) error {
 		url = mapPrev
 	}
 
-	if val, exsist := cache.Get(url); exsist {
-		return readAreas(val)
+	if cacheData, exsist := cache.Get(url); exsist {
+		return readAreas(cacheData)
 	}
 
 	res, err := http.Get(url)
@@ -70,8 +71,8 @@ func ExploreLocation(location string) error {
 
 	fmt.Printf("Exploring %s...\n", location)
 
-	if locationArea, exsist := cache.Get(url); exsist {
-		return readPokemonEncounters(locationArea)
+	if cacheData, exsist := cache.Get(url); exsist {
+		return readPokemonEncounters(cacheData)
 	}
 
 	res, err := http.Get(url)
@@ -101,5 +102,87 @@ func readPokemonEncounters(body []byte) error {
 		fmt.Printf(" - %s\n", v.Pokemon.Name)
 	}
 
+	return nil
+}
+
+func CatchPokemon(name string) error {
+	url := fmt.Sprintf("https://pokeapi.co/api/v2/pokemon/%s", name)
+
+	if cacheData, exsist := cache.Get(url); exsist {
+		return tryCatchPokemon(cacheData)
+	}
+
+	res, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return err
+	}
+
+	cache.Add(url, body)
+	return tryCatchPokemon(body)
+}
+
+func tryCatchPokemon(body []byte) error {
+	var resp pokemon
+	if err := json.Unmarshal(body, &resp); err != nil {
+		return fmt.Errorf("Pokemon not found")
+	}
+
+	fmt.Printf("Throwing a Pokeball at %s...\n", resp.Name)
+
+	time.Sleep(time.Second)
+	if rand.Intn(resp.BaseExperience/2) < resp.BaseExperience/6 {
+		fmt.Printf("%s was caught!\n", resp.Name)
+	} else {
+		fmt.Printf("%s escaped!\n", resp.Name)
+	}
+
+	return nil
+}
+
+func InspectPokemon(name string) error {
+	url := fmt.Sprintf("https://pokeapi.co/api/v2/pokemon/%s", name)
+
+	if cacheData, exsist := cache.Get(url); exsist {
+		return pokemonDataRead(cacheData)
+	}
+
+	res, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return err
+	}
+
+	cache.Add(url, body)
+	return pokemonDataRead(body)
+}
+
+func pokemonDataRead(body []byte) error {
+	var resp pokemon
+	if err := json.Unmarshal(body, &resp); err != nil {
+		return fmt.Errorf("Pokemon not found")
+	}
+
+	fmt.Println("Name:", resp.Name)
+	fmt.Println("Height:", resp.Height)
+	fmt.Println("Weight:", resp.Weight)
+	fmt.Println("Stats:")
+	for _, value := range resp.Stats {
+		fmt.Printf(" - %v: %d\n", value.Stat.Name, value.BaseStat)
+	}
+	fmt.Println("Types:")
+	for _, value := range resp.Types {
+		fmt.Printf(" - %v\n", value.Type.Name)
+	}
 	return nil
 }
