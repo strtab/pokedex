@@ -15,9 +15,11 @@ var (
 	mapNext string
 	mapPrev string
 	cache   pokecache.Cache
+	pokedex map[string]pokemon
 )
 
 func init() {
+	pokedex = make(map[string]pokemon)
 	cache = *pokecache.NewCache(time.Minute + 30)
 }
 
@@ -72,7 +74,7 @@ func ExploreLocation(location string) error {
 	fmt.Printf("Exploring %s...\n", location)
 
 	if cacheData, exsist := cache.Get(url); exsist {
-		return readPokemonEncounters(cacheData)
+		return readPokemonEncounters("Found Pokemon:", cacheData)
 	}
 
 	res, err := http.Get(url)
@@ -87,16 +89,27 @@ func ExploreLocation(location string) error {
 	}
 
 	cache.Add(url, body)
-	return readPokemonEncounters(body)
+	return readPokemonEncounters("Found Pokemon:", body)
 }
 
-func readPokemonEncounters(body []byte) error {
+func GetCaughtPokemons() error {
+	if len(pokedex) == 0 {
+		return fmt.Errorf("Your Pokedex is empty")
+	}
+	fmt.Println("Your Pokedex:")
+	for _, v := range pokedex {
+		fmt.Printf(" - %s\n", v.Name)
+	}
+	return nil
+}
+
+func readPokemonEncounters(output string, body []byte) error {
 	var resp locationArea
 	if err := json.Unmarshal(body, &resp); err != nil {
 		return err
 	}
 
-	fmt.Println("Found Pokemon:")
+	fmt.Println(output)
 
 	for _, v := range resp.PokemonEncounters {
 		fmt.Printf(" - %s\n", v.Pokemon.Name)
@@ -138,6 +151,10 @@ func tryCatchPokemon(body []byte) error {
 	time.Sleep(time.Second)
 	if rand.Intn(resp.BaseExperience/2) < resp.BaseExperience/6 {
 		fmt.Printf("%s was caught!\n", resp.Name)
+		if _, exsist := pokedex[resp.Name]; !exsist {
+			fmt.Println("Your Pokedex has been updated")
+		}
+		pokedex[resp.Name] = resp
 	} else {
 		fmt.Printf("%s escaped!\n", resp.Name)
 	}
@@ -147,6 +164,10 @@ func tryCatchPokemon(body []byte) error {
 
 func InspectPokemon(name string) error {
 	url := fmt.Sprintf("https://pokeapi.co/api/v2/pokemon/%s", name)
+
+	if _, exsist := pokedex[name]; !exsist {
+		return fmt.Errorf("You don't have %s in your Pokedex", name)
+	}
 
 	if cacheData, exsist := cache.Get(url); exsist {
 		return pokemonDataRead(cacheData)
